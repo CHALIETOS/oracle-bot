@@ -18,17 +18,20 @@ jobs:
           pip install oci-cli
 
       - name: Configurar credenciales de Oracle
+        env:
+              SUPPRESS_LABEL_WARNING: True
+              CLAVE_PRIVADA: ${{ secrets.OCI_KEY_FILE }}
         run: |
-          mkdir -p ~/.oci
-          echo "[DEFAULT]" > ~/.oci/config
-          echo "user=${{ secrets.OCI_USER_OCID }}" >> ~/.oci/config
-          echo "fingerprint=${{ secrets.OCI_FINGERPRINT }}" >> ~/.oci/config
-          echo "tenancy=${{ secrets.OCI_TENANT_OCID }}" >> ~/.oci/config
-          echo "region=${{ secrets.OCI_REGION }}" >> ~/.oci/config
-          echo "key_file=/home/runner/.oci/oci_api_key.pem" >> ~/.oci/config
-          echo "${{ secrets.OCI_KEY_FILE }}" > ~/.oci/oci_api_key.pem
-          chmod 600 ~/.oci/oci_api_key.pem
-          chmod 600 ~/.oci/config
+              mkdir -p ~/.oci
+              echo "[DEFAULT]" > ~/.oci/config
+              echo "user=${{ secrets.OCI_USER_OCID }}" >> ~/.oci/config
+              echo "fingerprint=${{ secrets.OCI_FINGERPRINT }}" >> ~/.oci/config
+              echo "tenancy=${{ secrets.OCI_TENANT_OCID }}" >> ~/.oci/config
+              echo "region=${{ secrets.OCI_REGION }}" >> ~/.oci/config
+              echo "key_file=/home/runner/.oci/oci_api_key.pem" >> ~/.oci/config
+              echo "$CLAVE_PRIVADA" > ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/config
 
       - name: Ejecutar Script de Lanzamiento
         env:
