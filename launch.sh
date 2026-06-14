@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Evitar advertencias de seguridad molestas en el CLI de OCI
+export SUPPRESS_LABEL_WARNING=True
+
 MAX_ATTEMPTS=5
 SLEEP_TIME=180 # 3 minutos (180 segundos)
 
@@ -39,22 +42,48 @@ do
         echo "Fallo al crear la instancia en el intento $attempt. Detalles del error:"
         echo "$OUTPUT"
         
-        if echo "$OUTPUT" | grep -q "Out of host capacity"; then
-            echo "Error: No hay capacidad en los servidores de Oracle (Out of host capacity)."
+        if echo "$OUTPUT" | grep -qi -E "capacity|insufficient|TooManyRequests"; then
+            echo "Error: No hay capacidad o se alcanzó el límite temporal de peticiones (Out of host capacity / TooManyRequests)."
             if [ $attempt -lt $MAX_ATTEMPTS ]; then
                 echo "Esperando $SLEEP_TIME segundos antes del siguiente intento..."
                 sleep $SLEEP_TIME
             else
                 echo "Se alcanzó el número máximo de intentos ($MAX_ATTEMPTS) sin éxito. Reintentando en el próximo ciclo del cron externo."
             fi
-        elif echo "$OUTPUT" | grep -q "LimitExceeded"; then
-            echo "Error: Límite excedido. Probablemente la instancia ya se ha creado o has alcanzado el límite de tu cuenta free tier."
+        elif echo "$OUTPUT" | grep -qi "LimitExceeded"; then
+            MSG="⚠️ *Oracle Cloud:* Límite excedido o la instancia ya existe. Revisa tu panel de Oracle Cloud."
+            echo "Error: $MSG"
+            if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                    -d chat_id="${TELEGRAM_CHAT_ID}" \
+                    -d text="$MSG" \
+                    -d parse_mode="Markdown"
+            fi
             exit 0
-        elif echo "$OUTPUT" | grep -q "NotAuthenticated"; then
-            echo "Error: Fallo de autenticación. Revisa que los OCID y la Private Key en los secretos de GitHub estén correctos."
+        elif echo "$OUTPUT" | grep -qi -E "NotAuthenticated|NotAuthorizedOrNotFound"; then
+            MSG="❌ *Oracle Cloud:* Fallo de autenticación o recurso no encontrado. Revisa los secretos de GitHub (OCID, Private Key) y IDs de recursos."
+            echo "Error: $MSG"
+            if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                    -d chat_id="${TELEGRAM_CHAT_ID}" \
+                    -d text="$MSG" \
+                    -d parse_mode="Markdown"
+            fi
             exit 0
         else
-            echo "Error desconocido."
+            MSG="❌ *Oracle Cloud:* Error inesperado al crear la instancia."
+            echo "$MSG Detalles:"
+            echo "$OUTPUT"
+            if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                CLEAN_OUTPUT=$(echo "$OUTPUT" | head -n 10 | tr -d '"' | tr -d '\r')
+                curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                    -d chat_id="${TELEGRAM_CHAT_ID}" \
+                    -d text="$MSG Detalles:
+\`\`\`
+$CLEAN_OUTPUT
+\`\`\`" \
+                    -d parse_mode="Markdown"
+            fi
             exit 0
         fi
     fi
