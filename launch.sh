@@ -19,7 +19,7 @@ do
       --availability-domain "fBUr:EU-MADRID-3-AD-1" \
       --compartment-id "ocid1.tenancy.oc1..aaaaaaaajebbtecducykqcazu2stjlqrgvd7k6flsbuyhi3usxg7psk4imfq" \
       --shape "VM.Standard.A1.Flex" \
-      --shape-config '{"ocpus": 4, "memoryInGBs": 24}' \
+      --shape-config '{"ocpus": 2, "memoryInGBs": 12}' \
       --subnet-id "ocid1.subnet.oc1.eu-madrid-3.aaaaaaaa7r4tznbmvkxpr53w63lt35ubjjpxpeisjtmdywnuuxa7vms6h72a" \
       --image-id "ocid1.image.oc1.eu-madrid-3.aaaaaaaaftiofoeugs6725ivdf2r4essef2zgkm34dm23m6h54kn2avogbwa" \
       --display-name "ubuntu-arm" \
